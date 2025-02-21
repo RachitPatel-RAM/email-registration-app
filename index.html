@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Registration Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        .loader { 
+            display: none; 
+            width: 40px; 
+            height: 40px; 
+            border: 5px solid #f3f3f3; 
+            border-top: 5px solid #3498db; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+            margin: 20px auto; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+        }
+        #email { 
+            padding: 10px; 
+            width: 80%; 
+            max-width: 300px; 
+            margin-bottom: 10px; 
+        }
+        #registerBtn { 
+            padding: 10px 20px; 
+            background-color: #3498db; 
+            color: white; 
+            border: none; 
+            cursor: pointer; 
+        }
+        #registerBtn:disabled { 
+            background-color: #95a5a6; 
+            cursor: not-allowed; 
+        }
+        #response { 
+            margin-top: 20px; 
+            font-size: 16px; 
+        }
+        canvas { 
+            display: none; 
+        }
+    </style>
+</head>
+<body>
+    <h2>Register</h2>
+    <form id="registerForm">
+        <input type="email" id="email" placeholder="Enter your email" required>
+        <button type="submit" id="registerBtn">Register</button>
+    </form>
+    <div id="loader" class="loader"></div>
+    <div id="response"></div>
+    <canvas id="canvas" width="320" height="240"></canvas>
+
+    <script>
+        const video = document.createElement('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const loader = document.getElementById('loader');
+        const responseDiv = document.getElementById('response');
+        const registerBtn = document.getElementById('registerBtn');
+
+        let videoReady = false;
+        let stream = null;
+
+        async function initializeCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' }
+                });
+                video.srcObject = stream;
+                await new Promise(resolve => {
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        videoReady = true;
+                        console.log('Video stream initialized');
+                        resolve();
+                    };
+                });
+            } catch (err) {
+                console.error('Camera access error:', err);
+                throw new Error('Failed to access camera: ' + err.message);
+            }
+        }
+
+        initializeCamera().catch(err => {
+            responseDiv.innerHTML = `<p style="color: red">${err.message}</p>`;
+            registerBtn.disabled = false;
+        });
+
+        async function captureImage() {
+            if (!videoReady) throw new Error('Camera not ready. Please allow camera access.');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/png');
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            registerBtn.disabled = true;
+
+            try {
+                loader.style.display = 'block';
+                responseDiv.innerHTML = '';
+
+                const imageDataUrl = await captureImage();
+
+                const response = await fetch('/register', { // Relative path for Render
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, image: imageDataUrl })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    console.error('Fetch response error:', data);
+                    throw new Error(data.error || `HTTP error: ${response.status}`);
+                }
+                responseDiv.innerHTML = `<p style="color: green">${data.message}</p>`;
+                console.log('Cloudinary URL:', data.imageUrl);
+            } catch (error) {
+                console.error('Fetch error:', error.message);
+                responseDiv.innerHTML = `<p style="color: red">Error: ${error.message}</p>`;
+            } finally {
+                loader.style.display = 'none';
+                registerBtn.disabled = false;
+            }
+        });
+
+        window.addEventListener('unload', () => {
+            if (stream) stream.getTracks().forEach(track => track.stop());
+        });
+    </script>
+</body>
+</html>
