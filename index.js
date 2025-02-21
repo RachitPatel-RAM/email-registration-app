@@ -8,7 +8,7 @@ const axios = require('axios');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // Render-compatible port
 
 app.use(cors({ origin: '*' }));
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -39,74 +39,48 @@ const transporter = nodemailer.createTransport({
 const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/drbp7g1t4/image/upload';
 const CLOUDINARY_UPLOAD_PRESET = 'emailRegistration';
 
-transporter.verify((error, success) => {
+transporter.verify((error) => {
     if (error) console.error('Email config error:', error);
     else console.log('Email server ready');
 });
 
 app.post('/register', async (req, res) => {
-    console.log('Received /register request:', req.body);
+    console.log('Received /register request');
     try {
         const { email, image } = req.body;
-        if (!email || !email.includes('@')) {
-            console.error('Invalid email:', email);
-            return res.status(400).json({ message: 'Invalid email address' });
-        }
-        if (!image || !image.startsWith('data:image/')) {
-            console.error('Invalid image data');
-            return res.status(400).json({ message: 'Invalid or missing image data' });
-        }
+        if (!email || !email.includes('@')) return res.status(400).json({ message: 'Invalid email' });
+        if (!image || !image.startsWith('data:image/')) return res.status(400).json({ message: 'Invalid image' });
 
         const base64Data = image.replace(/^data:image\/png;base64,/, "");
         const formData = new FormData();
         formData.append('file', `data:image/png;base64,${base64Data}`);
         formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-        console.log('Uploading to Cloudinary...');
         const cloudinaryResponse = await axios.post(CLOUDINARY_URL, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         const imageUrl = cloudinaryResponse.data.secure_url;
         console.log('Cloudinary upload successful:', imageUrl);
 
-        console.log('Saving to Firebase...');
-        const userDocRef = doc(db, 'users', email);
-        await setDoc(userDocRef, { email, imageUrl, timestamp: new Date() });
+        await setDoc(doc(db, 'users', email), { email, imageUrl, timestamp: Date.now() });
 
         const mailOptions = {
             from: 'patelram5002@gmail.com',
             to: email,
             subject: 'Welcome Cutie 💋',
-            html: `
-                <h2>Welcome!</h2>
-                <p>"Don't fall in hole focus in goal"</p>
-                <div style="white-space: nowrap; overflow-x: auto;">
-                    <img src="${imageUrl}" alt="User Image" style="max-height: 150px;">
-                </div>
-                <p>Thank you for registering with us.</p>
-                <p>Best regards,<br>Rachit Patel urff RAM PATEL</p>
-            `
+            html: `<h2>Welcome!</h2><p>"Don't fall in hole focus in goal"</p><img src="${imageUrl}" alt="User Image" style="max-height: 150px;"><p>Thank you for registering with us.</p><p>Best regards,<br>Rachit Patel urff RAM PATEL</p>`
         };
 
-        console.log('Sending email to:', email);
         const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent successfully:', info.messageId);
+        console.log('Email sent:', info.messageId);
 
-        res.status(200).json({
-            message: 'Registration successful! Welcome email sent.',
-            emailId: info.messageId,
-            imageUrl
-        });
+        res.status(200).json({ message: 'Registration successful! Welcome email sent.', imageUrl });
     } catch (error) {
-        console.error('Registration error:', error.message, error.stack);
+        console.error('Registration error:', error.message);
         res.status(500).json({ message: 'Registration failed', error: error.message });
     }
 });
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
