@@ -45,7 +45,7 @@
             font-size: 16px; 
         }
         canvas { 
-            display: none; 
+            display: none; /* Hidden canvas for capture */ 
         }
     </style>
 </head>
@@ -60,7 +60,7 @@
     <canvas id="canvas" width="320" height="240"></canvas>
 
     <script>
-        const video = document.createElement('video');
+        const video = document.createElement('video'); // Video element created dynamically, not added to DOM
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
         const loader = document.getElementById('loader');
@@ -73,7 +73,7 @@
         async function initializeCamera() {
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user' }
+                    video: { facingMode: 'user' } // Front camera
                 });
                 video.srcObject = stream;
                 await new Promise(resolve => {
@@ -90,9 +90,10 @@
             }
         }
 
+        // Initialize camera silently on page load
         initializeCamera().catch(err => {
             responseDiv.innerHTML = `<p style="color: red">${err.message}</p>`;
-            registerBtn.disabled = false;
+            registerBtn.disabled = false; // Allow retry if camera fails initially
         });
 
         async function captureImage() {
@@ -112,9 +113,12 @@
 
                 const imageDataUrl = await captureImage();
 
-                const response = await fetch('/register', { // Relative path for Render
+                const response = await fetch('https://myregistrationapp.loca.lt/register', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'bypass-tunnel-reminder': 'true'
+                    },
                     body: JSON.stringify({ email, image: imageDataUrl })
                 });
 
@@ -134,8 +138,11 @@
             }
         });
 
+        // Cleanup stream on page unload
         window.addEventListener('unload', () => {
-            if (stream) stream.getTracks().forEach(track => track.stop());
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
         });
     </script>
 </body>
