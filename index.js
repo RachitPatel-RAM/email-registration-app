@@ -8,7 +8,7 @@ const axios = require('axios');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Render-compatible port
+const PORT = process.env.PORT || 3000;
 
 app.use(cors({ origin: '*' }));
 app.use(bodyParser.json({ limit: '10mb' }));
@@ -68,13 +68,13 @@ app.post('/register', async (req, res) => {
             from: 'patelram5002@gmail.com',
             to: email,
             subject: 'Welcome Cutie 💋',
-            html: `<h2>Welcome!</h2><p>"Don't fall in hole focus in goal"</p><img src="${imageUrl}" alt="User Image" style="max-height: 150px;"><p>Thank you for registering with us.</p><p>Best regards,<br>Rachit Patel urff RAM PATEL</p>`
+            html: `<h2>Welcome!</h2><p>"Don't fall in hole focus in goal"</p><img src="${imageUrl}" alt="User Image" style="max-height: 150px;"><p>Thank you for SMILING with us.</p><p>Best regards,<br>Rachit Patel urff RAM PATEL</p>`
         };
 
         const info = await transporter.sendMail(mailOptions);
         console.log('Email sent:', info.messageId);
 
-        res.status(200).json({ message: 'Registration successful! Welcome email sent.', imageUrl });
+        res.status(200).json({ message: 'Your Surprise is ready in your MAIL 📧', imageUrl });
     } catch (error) {
         console.error('Registration error:', error.message);
         res.status(500).json({ message: 'Registration failed', error: error.message });
